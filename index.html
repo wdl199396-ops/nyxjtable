@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>进件质量督导工作台 · 负责人</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <h1>进件质量督导</h1>
+    <div class="sub">负责人工作台</div>
+    <button class="nav-btn active" data-page="board">📊 督导看板</button>
+    <button class="nav-btn" data-page="import">📥 数据导入</button>
+    <button class="nav-btn" data-page="config">⚙️ 组织配置</button>
+    <button class="nav-btn" data-page="action">📣 督导动作</button>
+    <button class="nav-btn" data-page="supervisor" onclick="location.href='supervisor.html'">👤 督导视图 ↗</button>
+  </aside>
+
+  <main class="main">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div>
+        <h2 style="margin:0" id="pageTitle">督导看板</h2>
+        <div class="tip" id="weekHint"></div>
+      </div>
+      <div class="row" style="align-items:center;gap:8px">
+        <div class="field" style="min-width:160px">
+          <label>查看周次（周一）</label>
+          <input type="date" id="weekPicker">
+        </div>
+        <button class="btn ghost sm" id="seedBtn">载入示例</button>
+        <button class="btn ghost sm" id="resetBtn">清空数据</button>
+      </div>
+    </div>
+
+    <!-- 看板 -->
+    <section class="page active" id="page-board">
+      <div class="kpis" id="kpis"></div>
+      <div class="card">
+        <h2>团队补件率排序 <span class="tag">按补件率由高到低 · 列序：团队 / 分部 / 退补件率 / 督导人</span></h2>
+        <div style="overflow-x:auto">
+          <table id="teamTable">
+            <thead><tr><th>团队</th><th>分部</th><th>退补件率</th><th>督导人</th><th>进件量</th><th>补件量</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>督导动作看板 <span class="tag">发起 → 执行 → 完成</span></h2>
+        <div class="kanban" id="kanban"></div>
+      </div>
+    </section>
+
+    <!-- 导入 -->
+    <section class="page" id="page-import">
+      <div class="card">
+        <h2>周进件/补件数据导入</h2>
+        <div class="row">
+          <div class="field" style="min-width:170px">
+            <label>导入周次（周一）</label>
+            <input type="date" id="importWeek">
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label>CSV 文本（表头：branch,team,person,caseCount,supplementCount）</label>
+          <textarea id="csvText" rows="9" placeholder="上海分部,上海一组,王伟,120,18&#10;上海分部,上海二组,赵敏,90,27&#10;北京分部,北京一组,,150,12"></textarea>
+        </div>
+        <div class="tip">说明：person 可留空（团队/分部级汇总行）；同名分部/团队自动匹配，不存在则自动创建；person 有值且团队内无此人会自动建档。</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="importBtn">导入并汇总</button>
+          <button class="btn ghost" id="loadSampleCsv">填入示例 CSV</button>
+        </div>
+        <div class="tip" id="importMsg"></div>
+      </div>
+    </section>
+
+    <!-- 配置 -->
+    <section class="page" id="page-config">
+      <div class="card">
+        <h2>组织与主数据配置</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="branch">分部</button>
+          <button class="tab" data-tab="team">团队</button>
+          <button class="tab" data-tab="employee">员工</button>
+          <button class="tab" data-tab="supervisor">督导员工</button>
+          <button class="tab" data-tab="rel">分部-督导关系</button>
+          <button class="tab" data-tab="tpl">动作模板</button>
+          <button class="tab" data-tab="batch">批量导入</button>
+        </div>
+        <div id="tab-branch" class="tabpane">
+          <div class="row">
+            <div class="field"><label>分部名称</label><input id="bName"></div>
+            <div class="field" style="max-width:160px"><label>编码(可选)</label><input id="bCode"></div>
+            <button class="btn" id="addBranch">添加</button>
+          </div>
+          <div id="branchList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-team" class="tabpane hidden">
+          <div class="row">
+            <div class="field"><label>团队名称</label><input id="tName"></div>
+            <div class="field"><label>所属分部</label><select id="tBranch"></select></div>
+            <button class="btn" id="addTeam">添加</button>
+          </div>
+          <div id="teamList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-employee" class="tabpane hidden">
+          <div class="row">
+            <div class="field"><label>员工姓名</label><input id="eName"></div>
+            <div class="field"><label>所属团队</label><select id="eTeam"></select></div>
+            <button class="btn" id="addEmp">添加</button>
+          </div>
+          <div id="empList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-supervisor" class="tabpane hidden">
+          <div class="row">
+            <div class="field"><label>督导姓名</label><input id="sName"></div>
+            <button class="btn" id="addSup">添加</button>
+          </div>
+          <div id="supList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-rel" class="tabpane hidden">
+          <div class="row">
+            <div class="field"><label>分部</label><select id="relBranch"></select></div>
+            <div class="field"><label>督导员工</label><select id="relSup"></select></div>
+            <button class="btn" id="addRel">建立关系</button>
+          </div>
+          <div id="relList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-tpl" class="tabpane hidden">
+          <div class="row">
+            <div class="field"><label>模板名称</label><input id="tplName"></div>
+            <div class="field" style="max-width:160px"><label>适用层级</label>
+              <select id="tplLevel"><option value="branch">分部</option><option value="team">团队</option><option value="person">个人</option></select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:10px"><label>默认内容</label><input id="tplContent"></div>
+          <button class="btn" id="addTpl" style="margin-top:10px">添加模板</button>
+          <div id="tplList" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-batch" class="tabpane hidden">
+          <h3 style="margin-top:0">通过 Excel / CSV 导入组织架构</h3>
+          <div class="tip">表头需含：<b>分部</b>、<b>团队</b>、<b>负责督导人</b>。每一行代表一个团队，系统自动创建分部 / 团队 / 督导员工，并建立「分部-督导」关系。督导人单元格可用 <code>、 , /</code> 分隔多人。</div>
+          <div class="row" style="align-items:center;gap:10px;margin-top:10px">
+            <input type="file" id="orgFile" accept=".xlsx,.xls,.csv" style="width:auto">
+            <button class="btn" id="importOrgBtn">导入组织架构</button>
+          </div>
+          <label style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:14px;color:#1f2733;cursor:pointer">
+            <input type="checkbox" id="clearOrgChk" checked style="width:auto">
+            导入前清空现有组织（将删除当前 <b>分部 / 团队 / 员工 / 督导 / 周数据 / 督导动作</b>，仅保留动作模板）
+          </label>
+          <div class="tip" id="orgImportMsg"></div>
+          <div id="orgSummary" style="margin-top:14px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 督导动作 -->
+    <section class="page" id="page-action">
+      <div class="card">
+        <h2>发起督导动作</h2>
+        <div class="row">
+          <div class="field" style="max-width:150px"><label>目标层级</label>
+            <select id="aLevel"><option value="branch">分部</option><option value="team" selected>团队</option><option value="person">个人</option></select>
+          </div>
+          <div class="field"><label>目标对象</label><select id="aTarget"></select></div>
+          <div class="field" style="max-width:170px"><label>使用模板(可选)</label><select id="aTpl"></select></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field"><label>动作内容</label><input id="aContent" placeholder="描述本次督导动作要求"></div>
+          <div class="field" style="max-width:180px"><label>责任人</label><input id="aResp" placeholder="如：陈督导"></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field" style="max-width:170px"><label>发起方</label><select id="aLauncher"></select></div>
+          <div class="field" style="max-width:170px"><label>周次</label><input type="date" id="aWeek"></div>
+          <button class="btn" id="addAction">发起动作</button>
+        </div>
+        <div class="tip" id="actionMsg"></div>
+      </div>
+      <div class="card">
+        <h2>当周督导动作 <span class="tag" id="actionWeekTag"></span></h2>
+        <div id="actionList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="local-server.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

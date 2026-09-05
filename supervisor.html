@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>进件质量督导工作台 · 督导视图</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <h1>进件质量督导</h1>
+    <div class="sub">督导员工视图</div>
+    <button class="nav-btn" onclick="location.href='index.html'">📊 负责人看板 ↗</button>
+  </aside>
+  <main class="main">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2 style="margin:0">督导工作台</h2>
+      <div class="row" style="align-items:center;gap:8px">
+        <div class="field" style="min-width:170px"><label>选择督导员工</label><select id="supSel"></select></div>
+        <div class="field" style="min-width:160px"><label>周次（周一）</label><input type="date" id="weekPicker"></div>
+      </div>
+    </div>
+    <div class="tip" id="hint"></div>
+
+    <section class="page active">
+      <div class="card">
+        <h2 id="supTitle">负责分部与团队</h2>
+        <div id="tree"></div>
+      </div>
+      <div class="card">
+        <h2>当周督导动作 <span class="tag" id="actWeek"></span></h2>
+        <div id="actList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="local-server.js"></script>
+<script src="supervisor.js"></script>
+</body>
+</html>
