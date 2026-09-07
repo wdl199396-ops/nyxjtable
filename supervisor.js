@@ -14,11 +14,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '
 async function loadSupers() {
   const st = await api('GET', '/api/state');
   SUPERVISORS = st.supervisors;
-  const prof = window.wbProfile || null;
   $('#supSel').innerHTML = SUPERVISORS.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option>暂无督导员工</option>';
-  const who = $('#whoami');
-  if (who) who.textContent = prof ? (prof.display_name || prof.email || '') + ' · ' + (prof.role === 'leader' ? '负责人' : '成员') : '…';
-  const tl = $('#toLeader'); if (tl && prof && prof.role === 'leader') tl.style.display = 'block';
   if (!st.weeks.length) st.weeks = [monday(new Date().toISOString())];
   $('#weekPicker').value = st.weeks[0];
   if (SUPERVISORS.length) loadDashboard();
@@ -76,11 +72,5 @@ async function buildNameCache() {
 
 $('#supSel').addEventListener('change', loadDashboard);
 $('#weekPicker').addEventListener('change', loadDashboard);
-
-(function () {
-  const lo = $('#logoutBtn'); if (lo) lo.addEventListener('click', () => { if (window.wbSignOut) wbSignOut(); });
-  let t;
-  window.addEventListener('wb:sync', () => { clearTimeout(t); t = setTimeout(() => { try { buildNameCache().then(loadSupers); } catch (e) {} }, 600); });
-})();
 
 buildNameCache().then(loadSupers);
