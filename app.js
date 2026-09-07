@@ -195,7 +195,8 @@ function bindEvents() {
   $$('.tab').forEach(t => t.addEventListener('click', () => {
     $$('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active');
     $$('.tabpane').forEach(p => p.classList.add('hidden'));
-    $('#tab-' + t.dataset.tab).classList.remove('hidden');
+    const pane = $('#tab-' + t.dataset.tab); if (pane) pane.classList.remove('hidden');
+    if (t.dataset.tab === 'accounts') { renderAccSup(); loadAccounts(); }
   }));
   $('#weekPicker').addEventListener('change', renderBoard);
   $('#importWeek').addEventListener('change', () => {});
@@ -267,3 +268,59 @@ function bindEvents() {
 
 bindEvents();
 loadState();
+
+// ---- 云端协作版：同步刷新 / 退出登录 / 身份提示 ----
+function wbRenderWho() {
+  var p = window.wbProfile, w = $('#whoami');
+  if (w) w.textContent = p ? (p.display_name || p.email || '') + ' · ' + (p.role === 'leader' ? '负责人' : '成员') : '…';
+}
+function applyRoleUI() {
+  var leader = !!(window.wbProfile && window.wbProfile.role === 'leader');
+  $$('.nav-btn[data-page="config"]').forEach(function (b) { b.style.display = leader ? 'block' : 'none'; });
+  ['#seedBtn', '#resetBtn'].forEach(function (id) { const el = $(id); if (el) el.style.display = leader ? '' : 'none'; });
+  if (!leader) {
+    const act = $('.nav-btn.active');
+    if (act && act.dataset.page === 'config') { const b = $('.nav-btn[data-page="board"]'); if (b) b.click(); }
+  }
+}
+window.addEventListener('wb:sync', function () { wbRenderWho(); applyRoleUI(); loadState(); });
+window.addEventListener('wb:syncerr', function (e) { try { toast('同步失败：' + (e.detail || '请检查网络')); } catch (x) {} });
+var wbLo = $('#logoutBtn');
+if (wbLo) wbLo.addEventListener('click', function () { if (window.wbSignOut) wbSignOut(); });
+wbRenderWho();
+
+// ---- 账号管理（仅负责人） ----
+function accMsg(txt, err) { const m = $('#accMsg'); if (!m) return; m.textContent = txt || ''; m.style.color = err ? '#e23b3b' : '#27a567'; }
+function renderAccSup() {
+  const sel = $('#accSup'); if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— 暂不关联 —</option>' + STATE.supervisors.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  sel.value = cur;
+}
+async function loadAccounts() {
+  const box = $('#accList'); if (!box) return;
+  try {
+    const list = await api('GET', '/api/accounts');
+    const supName = id => { const s = STATE.supervisors.find(x => x.id === id); return s ? esc(s.name) : '—'; };
+    box.innerHTML = '<b style="font-size:14px">当前登录账号（' + list.length + '）</b><div style="margin-top:8px">' + list.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:#fff">
+        <span style="flex:1">${esc(a.email)} <span class="muted">（${a.role === 'leader' ? '负责人' : '督导 · ' + supName(a.supervisorId)}）${esc(a.displayName) ? ' · ' + esc(a.displayName) : ''}</span></span>
+        ${a.email !== (window.wbProfile && window.wbProfile.email) ? `<button class="btn sm ghost" data-del="${a.id}" data-mail="${esc(a.email)}">移除</button>` : '<span class="muted">当前账号</span>'}
+      </div>`).join('') + '</div>';
+    $$('#accList [data-del]').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('确认移除账号 ' + b.dataset.mail + '？（该账号将无法再登录，其历史数据保留）')) return;
+      try { await api('DELETE', '/api/accounts/' + b.dataset.del); toast('已移除'); loadAccounts(); } catch (e) { toast(e.message); }
+    }));
+  } catch (e) { box.innerHTML = '<span style="color:#e23b3b">加载失败：' + esc(e.message) + '</span>'; }
+}
+$('#accCreate') && $('#accCreate').addEventListener('click', async () => {
+  const email = $('#accEmail').value.trim(), pw = $('#accPw').value, sid = $('#accSup').value;
+  if (!email || !pw) { accMsg('请填写登录名与初始密码', true); return; }
+  if (pw.length < 6) { accMsg('密码至少 6 位', true); return; }
+  accMsg('正在创建…', false);
+  try {
+    await api('POST', '/api/accounts', { email, password: pw, supervisorId: sid || null });
+    accMsg('已创建，对方用 ' + email + ' 即可登录（角色=督导）', false);
+    $('#accEmail').value = ''; $('#accPw').value = ''; loadAccounts();
+  } catch (e) { accMsg(e.message, true); }
+});
